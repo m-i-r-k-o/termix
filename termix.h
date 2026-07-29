@@ -1,5 +1,5 @@
-#ifndef ECLI_H
-#define ECLI_H
+#ifndef TERMIX_H
+#define TERMIX_H
 
 
 
