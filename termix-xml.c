@@ -2,20 +2,22 @@
 #include "termix-def.h"
 
 #include <ctype.h>
+#include <string.h>
+#include <stdio.h>
 
-static const xml_error XML_EMPTY_TEXT = "empty text";
-static const xml_error XML_MISSING_OPENING_TAG = "missing opening tag";
-static const xml_error XML_MISSING_TAG_NAME = "missing tag name";
-static const xml_error XML_INVALID_TAG_NAME = "invalid tag name";
-static const xml_error XML_OUT_OF_MEMORY = "out of memory";
-static const xml_error XML_INVALID_TOKEN = "invalid token";
-static const xml_error XML_MISSING_ATTRIBUTE_VALUE = "missing attibute value";
-static const xml_error XML_INVALID_ATTRIBUTE_NAME = "invalid attribute name";
-static const xml_error XML_UNCLOSED_QUOTES = "unclosed quotes";
-static const xml_error XML_MISSING_CLOSING_TAG = "missing closing tag";
+const xml_error XML_EMPTY_TEXT = "empty text";
+const xml_error XML_MISSING_OPENING_TAG = "missing opening tag";
+const xml_error XML_MISSING_TAG_NAME = "missing tag name";
+const xml_error XML_INVALID_TAG_NAME = "invalid tag name";
+const xml_error XML_OUT_OF_MEMORY = "out of memory";
+const xml_error XML_INVALID_TOKEN = "invalid token";
+const xml_error XML_MISSING_ATTRIBUTE_VALUE = "missing attibute value";
+const xml_error XML_INVALID_ATTRIBUTE_NAME = "invalid attribute name";
+const xml_error XML_UNCLOSED_QUOTES = "unclosed quotes";
+const xml_error XML_MISSING_CLOSING_TAG = "missing closing tag";
 
 static inline xml_node *xml_new_node(void) {
-    xml_node *node = TERMIX_MALLOC(sizeof(xml_node));
+    xml_node *node = config_malloc(sizeof(xml_node));
     if(!node) return NULL;
 
     node->name = NULL;
@@ -33,32 +35,32 @@ static inline xml_node *xml_new_node(void) {
 }
 
 static void xml_free_node(xml_node *node) {
-    if(node->name) TERMIX_FREE(node->name);
-    if(node->text) TERMIX_FREE(node->text);
+    if(node->name) config_free(node->name);
+    if(node->text) config_free(node->text);
 
     if(node->attrs) {
         for(size_t n = 0; n < node->attrs_used; n++) {
-            TERMIX_FREE(node->attrs[n].name);
-            TERMIX_FREE(node->attrs[n].value);
+            config_free(node->attrs[n].name);
+            config_free(node->attrs[n].value);
         }
-        TERMIX_FREE(node->attrs);
+        config_free(node->attrs);
     }
 
     if(node->childs) {
         for(size_t n = 0; n < node->childs_used; n++) {
             xml_free_node(node->childs[n]);
         }
-        TERMIX_FREE(node->childs);
+        config_free(node->childs);
     }
 
-    TERMIX_FREE(node);
+    config_free(node);
 }
 
 static xml_error xml_add_child(xml_node *parent, xml_node *child) {
     if(parent->childs_used >= parent->childs_size) {
         size_t new_size = round_size(parent->childs_used + 1);
 
-        xml_node **new_childs = TERMIX_REALLOC(parent->childs, new_size * sizeof(xml_node*));
+        xml_node **new_childs = config_realloc(parent->childs, new_size * sizeof(xml_node*));
         if(!new_childs) return XML_OUT_OF_MEMORY;
 
         parent->childs = new_childs;
@@ -76,7 +78,7 @@ static xml_error xml_add_attr(
     if(node->attrs_used >= node->attrs_size) {
         size_t new_size = round_size(node->attrs_used + 1);
 
-        xml_attr *new_attrs = TERMIX_REALLOC(node->attrs, new_size * sizeof(xml_attr));
+        xml_attr *new_attrs = config_realloc(node->attrs, new_size * sizeof(xml_attr));
         if(!new_attrs) return XML_OUT_OF_MEMORY;
 
         node->attrs = new_attrs;
@@ -88,8 +90,8 @@ static xml_error xml_add_attr(
     attr->value = malloc_string(value, _len);
 
     if(!attr->name || !attr->value) {
-        if(attr->name) TERMIX_FREE(attr->name);
-        if(attr->value) TERMIX_FREE(attr->value);
+        if(attr->name) config_free(attr->name);
+        if(attr->value) config_free(attr->value);
         return XML_OUT_OF_MEMORY;
     }
 
@@ -149,8 +151,6 @@ static xml_error xml_parse_attrs(xml_node *node, const char **xml) {
 
     return NULL;
 }
-
-static xml_node *xml_parse(const char **xml, xml_error *error);
 
 static xml_error xml_parse_childs(xml_node *node, const char **xml) {
     while(**xml) {

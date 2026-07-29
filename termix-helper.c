@@ -18,7 +18,7 @@ size_t round_size(size_t size) {
 }
 
 char *malloc_string(const char *str, size_t len) {
-    char *dup = TERMIX_MALLOC(len + 1);
+    char *dup = config_malloc(len + 1);
     if(!dup) return NULL;
 
     memcpy(dup, str, len);
